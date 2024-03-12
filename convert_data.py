@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+FIGURE_WIDTH = 15
+
 
 def get_data(file_name, title, day_first):
     df = pd.read_csv(file_name)
@@ -11,6 +13,7 @@ def get_data(file_name, title, day_first):
         dates = pd.to_datetime(df['Date'], format='%Y-%m-%d')
 
     prices = df['Closing']
+    plt.figure().set_figwidth(FIGURE_WIDTH)
     plt.title('Historical Rates : ' + title)
     plt.xlabel('Date')
     plt.ylabel('Price')
@@ -19,11 +22,21 @@ def get_data(file_name, title, day_first):
     return df
 
 
+def count_ema(prices, period):
+    alfa = 2 / (period + 1)
+    ema = [prices[0]]
+    for i in range(1, len(prices)):
+        ema.append(prices[i] * alfa + ema[i - 1] * (1 - alfa))
+    return ema
+
+
 def count_macd(df, title, day_first):
-    df['EMA12'] = df['Closing'].ewm(span=12, adjust=False).mean()
-    df['EMA26'] = df['Closing'].ewm(span=26, adjust=False).mean()
+    df['EMA12'] = count_ema(df['Closing'], 12)
+    df['EMA26'] = count_ema(df['Closing'], 26)
     df['MACD'] = df['EMA12'] - df['EMA26']
-    df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+    df['Signal_Line'] = count_ema(df['MACD'], 9)
+
+    # TODO save BUY and SELL points and plot it
 
     for i in range(0, len(df) - 1):
         current_row = df.iloc[i]
@@ -49,9 +62,10 @@ def count_macd(df, title, day_first):
     else:
         dates_for_sell_points = pd.to_datetime(sell_data['Date'], format='%Y-%m-%d')
         dates_for_buy_points = pd.to_datetime(buy_data['Date'], format='%Y-%m-%d')
-        dates = pd.to_datetime(df['Date'], format='%Y-%m-%d')
+        dates = pd.to_datetime(df['Date'])
 
     prices_averages = df['MACD']
+    plt.figure().set_figwidth(FIGURE_WIDTH)
     plt.title('MACD for : ' + title)
     plt.xlabel('Date')
     plt.ylabel('Price Averages')
@@ -59,6 +73,16 @@ def count_macd(df, title, day_first):
     plt.plot(dates, prices_averages, label='MACD')
     plt.scatter(dates_for_buy_points, buy_points, color='green', marker='x', label='buy')
     plt.scatter(dates_for_sell_points, sell_points, color='red', marker='x', label='sell')
+    plt.legend()
+    plt.show()
+
+    plt.figure().set_figwidth(FIGURE_WIDTH)
+    plt.title("BUY and SELL for: " + title)
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.scatter(dates_for_buy_points, buy_points, color='green', marker='x', label='buy')
+    plt.scatter(dates_for_sell_points, sell_points, color='red', marker='x', label='sell')
+    plt.plot(dates, df['Closing'], color="purple")
     plt.legend()
     plt.show()
 
@@ -85,4 +109,4 @@ def simulate_macd_strategy(df, start_units):
 
 
 def simulate_alternative_strategy(df, start_units):
-    print('a')
+    return 1000
