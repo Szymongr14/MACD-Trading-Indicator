@@ -42,12 +42,12 @@ def count_macd(df, title, day_first):
         current_row = df.iloc[i]
         next_row = df.iloc[i + 1]
         if current_row['MACD'] < current_row['Signal_Line'] and next_row['MACD'] > next_row['Signal_Line']:
-            df.at[i, 'buy'] = df.at[i, 'MACD']
+            df.at[i, 'buy'] = df.at[i, 'Signal_Line']
             df.at[i, 'sell'] = 0
             df.at[i, 'buy_price'] = df.at[i, 'Closing']
             df.at[i, 'sell_price'] = 0
         elif current_row['MACD'] > current_row['Signal_Line'] and next_row['MACD'] < next_row['Signal_Line']:
-            df.at[i, 'sell'] = df.at[i, 'MACD']
+            df.at[i, 'sell'] = df.at[i, 'Signal_Line']
             df.at[i, 'buy'] = 0
             df.at[i, 'sell_price'] = df.at[i, 'Closing']
             df.at[i, 'buy_price'] = 0
@@ -81,8 +81,8 @@ def count_macd(df, title, day_first):
     plt.ylabel('Price Averages')
     plt.plot(dates, df['Signal_Line'], color="red", label='signal line')
     plt.plot(dates, prices_averages, label='MACD')
-    plt.scatter(dates_for_buy_points, buy_points, color='green', marker='x', label='buy')
-    plt.scatter(dates_for_sell_points, sell_points, color='red', marker='x', label='sell')
+    plt.scatter(dates_for_buy_points, buy_points, color='green', marker='^', label='buy', zorder=2)
+    plt.scatter(dates_for_sell_points, sell_points, color='red', marker='v', label='sell', zorder=2)
     plt.legend()
     plt.show()
 
@@ -90,38 +90,51 @@ def count_macd(df, title, day_first):
     plt.title("BUY and SELL for: " + title)
     plt.xlabel('Date')
     plt.ylabel('Price')
-    plt.scatter(dates_for_buy_points, buy_price, color='green', marker='x', label='buy')
-    plt.scatter(dates_for_sell_points, sell_price, color='red', marker='x', label='sell')
-    plt.plot(dates, df['Closing'])
+    plt.scatter(dates_for_buy_points, buy_price, color='green', marker='^', label='buy', zorder=2)
+    plt.scatter(dates_for_sell_points, sell_price, color='red', marker='v', label='sell', zorder=2)
+    plt.plot(dates, df['Closing'], zorder=1)
     plt.legend()
     plt.show()
 
 
 def simulate_macd_strategy(df, start_units):
-    actions = start_units
-    sold_funds = False
+    money = 0
+    actions = df.at[0, 'Closing'] / start_units
+    actions_are_sold = False
+
 
     for i in range(1, len(df)):
         previous_price = df.iloc[i - 1]
         current_price = df.iloc[i]
-        if df.at[i, 'buy'] == 1.0 and sold_funds:
-            sold_funds = False
+        if df.at[i, 'buy_price'] != 0.0 and actions_are_sold:
+            actions_are_sold = False
+            actions = money / current_price['Closing']
             continue
 
-        elif df.at[i, 'sell'] == 1.0 and not sold_funds:
-            sold_funds = True
+        elif df.at[i, 'sell_price'] != 0.0 and not actions_are_sold:
+            actions_are_sold = True
+            money = actions * current_price['Closing']
             continue
 
-        if not sold_funds:
+    return money
+
+
+def simulate_alternative_strategy(df, start_units, cooldown_period=5):
+    actions = start_units
+    actions_are_sold = False
+
+    for i in range(1, len(df)):
+        previous_price = df.iloc[i - 1]
+        current_price = df.iloc[i]
+        if df.at[i, 'buy'] == 1.0 and actions_are_sold:
+            actions_are_sold = False
+            continue
+
+        elif df.at[i, 'sell'] == 1.0 and not actions_are_sold:
+            actions_are_sold = True
+            continue
+
+        if not actions_are_sold:
             actions = actions * (current_price['Closing'] / previous_price['Closing'])
 
     return actions
-
-
-def simulate_alternative_strategy(df, start_units):
-    actions = start_units
-
-
-
-
-    return 1000
