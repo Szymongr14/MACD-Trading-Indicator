@@ -44,17 +44,27 @@ def count_macd(df, title, day_first):
         if current_row['MACD'] < current_row['Signal_Line'] and next_row['MACD'] > next_row['Signal_Line']:
             df.at[i, 'buy'] = df.at[i, 'MACD']
             df.at[i, 'sell'] = 0
+            df.at[i, 'buy_price'] = df.at[i, 'Closing']
+            df.at[i, 'sell_price'] = 0
         elif current_row['MACD'] > current_row['Signal_Line'] and next_row['MACD'] < next_row['Signal_Line']:
             df.at[i, 'sell'] = df.at[i, 'MACD']
             df.at[i, 'buy'] = 0
+            df.at[i, 'sell_price'] = df.at[i, 'Closing']
+            df.at[i, 'buy_price'] = 0
         else:
             df.at[i, 'buy'] = 0
             df.at[i, 'sell'] = 0
+            df.at[i, 'buy_price'] = 0
+            df.at[i, 'sell_price'] = 0
 
     buy_data = df[df['buy'] != 0]
     sell_data = df[df['sell'] != 0]
+    buy_price_data = df[df['buy_price'] != 0]
+    sell_price_data = df[df['sell_price'] != 0]
     buy_points = buy_data['buy']
     sell_points = sell_data['sell']
+    buy_price = buy_price_data['buy_price']
+    sell_price = sell_price_data['sell_price']
     if day_first:
         dates_for_sell_points = pd.to_datetime(sell_data['Date'], format='%d/%m/%Y')
         dates_for_buy_points = pd.to_datetime(buy_data['Date'], format='%d/%m/%Y')
@@ -80,9 +90,9 @@ def count_macd(df, title, day_first):
     plt.title("BUY and SELL for: " + title)
     plt.xlabel('Date')
     plt.ylabel('Price')
-    plt.scatter(dates_for_buy_points, buy_points, color='green', marker='x', label='buy')
-    plt.scatter(dates_for_sell_points, sell_points, color='red', marker='x', label='sell')
-    plt.plot(dates, df['Closing'], color="purple")
+    plt.scatter(dates_for_buy_points, buy_price, color='green', marker='x', label='buy')
+    plt.scatter(dates_for_sell_points, sell_price, color='red', marker='x', label='sell')
+    plt.plot(dates, df['Closing'])
     plt.legend()
     plt.show()
 
@@ -109,4 +119,9 @@ def simulate_macd_strategy(df, start_units):
 
 
 def simulate_alternative_strategy(df, start_units):
+    actions = start_units
+
+
+
+
     return 1000
