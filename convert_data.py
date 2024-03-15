@@ -99,9 +99,8 @@ def count_macd(df, title, day_first):
 
 def simulate_macd_strategy(df, start_units):
     money = 0
-    actions = df.at[0, 'Closing'] / start_units
+    actions = start_units / df.iloc[0]['Closing']
     actions_are_sold = False
-
 
     for i in range(1, len(df)):
         previous_price = df.iloc[i - 1]
@@ -109,13 +108,17 @@ def simulate_macd_strategy(df, start_units):
         if df.at[i, 'buy_price'] != 0.0 and actions_are_sold:
             actions_are_sold = False
             actions = money / current_price['Closing']
+            money = 0
             continue
 
         elif df.at[i, 'sell_price'] != 0.0 and not actions_are_sold:
             actions_are_sold = True
             money = actions * current_price['Closing']
+            actions = 0
             continue
 
+    if money == 0:
+        money = actions * current_price['Closing']
     return money
 
 
