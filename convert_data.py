@@ -24,9 +24,16 @@ def get_data(file_name, title, day_first):
 
 def count_ema(prices, period):
     alfa = 2 / (period + 1)
-    ema = [prices[0]]
-    for i in range(1, len(prices)):
-        ema.append(prices[i] * alfa + ema[i - 1] * (1 - alfa))
+    # ema = [prices[0]]
+    # for i in range(1, len(prices)):
+    #     ema.append(prices[i] * alfa + ema[i - 1] * (1 - alfa))
+    # return ema
+
+    ema = np.zeros(len(prices))
+    sma = np.mean(prices[:period])
+    ema[period - 1] = sma
+    for i in range(period, len(prices)):
+        ema[i] = (prices[i] * alfa) + (ema[i - 1] * (1 - alfa))
     return ema
 
 
@@ -35,8 +42,6 @@ def count_macd(df, title, day_first):
     df['EMA26'] = count_ema(df['Closing'], 26)
     df['MACD'] = df['EMA12'] - df['EMA26']
     df['Signal_Line'] = count_ema(df['MACD'], 9)
-
-    # TODO save BUY and SELL points and plot it
 
     for i in range(0, len(df) - 1):
         current_row = df.iloc[i]
@@ -98,49 +103,52 @@ def count_macd(df, title, day_first):
 
 
 def simulate_macd_strategy(df, start_units):
-    money = 0
-    actions = start_units / df.iloc[0]['Closing']
     actions_are_sold = False
+    buy_price = 0
+    balance = start_units
 
-    for i in range(1, len(df)-1):
-        previous_price = df.iloc[i - 1]
+    for i in range(1, len(df) - 1):
         current_price = df.iloc[i]
-        if df.at[i, 'buy_price'] != 0.0 and actions_are_sold:
-            print("bought: {}".format(df.at[i, 'buy_price']))
-            actions_are_sold = False
-            actions = money / current_price['Closing']
-            money = 0
-            continue
-
-        elif df.at[i, 'sell_price'] != 0.0 and not actions_are_sold:
-            print("sold: {} {}".format(df.at[i, 'sell_price'], i))
-
-            actions_are_sold = True
-            money = actions * current_price['Closing']
-            actions = 0
-            continue
-
-    if money == 0:
-        money = actions * df.at[len(df), 'Closing']
-    return money
-
-
-def simulate_alternative_strategy(df, start_units, cooldown_period=5):
-    actions = start_units
-    actions_are_sold = False
-
-    for i in range(1, len(df)):
-        previous_price = df.iloc[i - 1]
-        current_price = df.iloc[i]
-        if df.at[i, 'buy'] == 1.0 and actions_are_sold:
+        if current_price['buy_price'] != 0.0 and actions_are_sold:
+            # print("bought: {}".format(df.at[i, 'buy_price']))
+            buy_price = df.at[i, 'buy_price']
             actions_are_sold = False
             continue
 
-        elif df.at[i, 'sell'] == 1.0 and not actions_are_sold:
+        elif current_price['sell_price'] != 0.0 and not actions_are_sold:
+            # print("sold: {} {}".format(df.at[i, 'sell_price'], i))
+            sell_price = df.at[i, 'sell_price']
             actions_are_sold = True
+            diff = sell_price - buy_price
+            balance += diff
+            # print("diff: {}".format(diff))
             continue
 
-        if not actions_are_sold:
-            actions = actions * (current_price['Closing'] / previous_price['Closing'])
+    return balance
 
-    return actions
+
+def simulate_alternative_strategy(df, start_units, cooldown_period=4):
+    holding = False
+    buy_price = 0
+    balance = start_units
+    cooldown_count = 0
+
+    for i in range(1, len(df) - 1):
+        current_price = df.iloc[i]
+        if current_price['buy_price'] != 0.0 and cooldown_count == 0:
+            cooldown_count = cooldown_period
+            buy_price = df.at[i, 'buy_price']
+            holding = False
+            continue
+
+        elif current_price['sell_price'] != 0.0 and not holding:
+            sell_price = df.at[i, 'sell_price']
+            holding = True
+            diff = sell_price - buy_price
+            balance += diff
+            continue
+
+        if cooldown_count > 0:
+            cooldown_count -= 1
+
+    return balance
