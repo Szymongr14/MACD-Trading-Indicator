@@ -24,17 +24,11 @@ def get_data(file_name, title, day_first):
 
 def count_ema(prices, period):
     alfa = 2 / (period + 1)
-    # ema = [prices[0]]
-    # for i in range(1, len(prices)):
-    #     ema.append(prices[i] * alfa + ema[i - 1] * (1 - alfa))
-    # return ema
-
-    ema = np.zeros(len(prices))
-    sma = np.mean(prices[:period])
-    ema[period - 1] = sma
-    for i in range(period, len(prices)):
-        ema[i] = (prices[i] * alfa) + (ema[i - 1] * (1 - alfa))
+    ema = [prices[0]]
+    for i in range(1, len(prices)):
+        ema.append(prices[i] * alfa + ema[i - 1] * (1 - alfa))
     return ema
+
 
 
 def count_macd(df, title, day_first):
@@ -127,7 +121,7 @@ def simulate_macd_strategy(df, start_units):
     return balance
 
 
-def simulate_alternative_strategy(df, start_units, cooldown_period=4):
+def simulate_alternative_strategy(df, start_units, cooldown_period=3):
     holding = False
     buy_price = 0
     balance = start_units
