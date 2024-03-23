@@ -93,6 +93,10 @@ def count_macd(df, title, day_first):
     plt.scatter(dates_for_sell_points, sell_price, color='red', marker='v', label='sell', zorder=2)
     plt.plot(dates, df['Closing'], zorder=1)
     plt.legend()
+    date = pd.to_datetime('2020-01-01', format='%Y-%m-%d')
+    date1 = pd.to_datetime('2021-04-02', format='%Y-%m-%d')
+    # plt.xlim(date, date1)
+
     plt.show()
 
 
